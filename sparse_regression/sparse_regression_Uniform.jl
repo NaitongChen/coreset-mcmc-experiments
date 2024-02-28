@@ -1,11 +1,11 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using StatsBase
 using Distributions
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -22,15 +22,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
+    model = MCMCsampler.SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = GibbsSR()
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    kernel = MCMCsampler.GibbsSR()
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
     cv.inds = sample(rng, [1:model.N;], cv.N; replace = false)
     cv.sub_dataset = @view(model.datamat[cv.inds,:])
     cv.sub_xp = Matrix(cv.sub_dataset')

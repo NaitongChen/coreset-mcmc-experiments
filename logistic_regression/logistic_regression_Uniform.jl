@@ -1,10 +1,10 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using StatsBase
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -23,15 +23,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
+    model = MCMCsampler.LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = SliceSamplerMD()
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    kernel = MCMCsampler.SliceSamplerMD()
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
     cv.inds = sample(rng, [1:model.N;], cv.N; replace = false)
     cv.sub_dataset = reduce(hcat, @view(model.dataset[cv.inds]))'
     cv.weights = (model.N / cv.N) * ones(cv.N)

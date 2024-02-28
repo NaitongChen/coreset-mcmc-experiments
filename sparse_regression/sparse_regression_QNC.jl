@@ -1,10 +1,10 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using Distributions
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -21,15 +21,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
+    model = MCMCsampler.SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = QuasiNewtonCoreset(kernel = GibbsSR(), t=20, K=50, ls_iter=10, S=1000, β=0)
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    kernel = MCMCsampler.QuasiNewtonCoreset(kernel = MCMCsampler.GibbsSR(), t=20, K=50, ls_iter=10, S=1000, β=0)
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time, weights = MCMCsampler.sample!(kernel, model, cv, 50 + 2*n_samples, rng)

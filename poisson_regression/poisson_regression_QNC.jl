@@ -1,9 +1,9 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -23,15 +23,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = PoissonRegressionModel(length(data), data, reduce(hcat, data)', d, 1, nothing)
+    model = MCMCsampler.PoissonRegressionModel(length(data), data, reduce(hcat, data)', d, 1, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = QuasiNewtonCoreset(kernel = SliceSampler(n_passes=1), t=50, K=100, ls_iter=10, S=1000, β=0)
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    kernel = MCMCsampler.QuasiNewtonCoreset(kernel = MCMCsampler.SliceSamplerMD(), t=50, K=100, ls_iter=10, S=1000, β=0)
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time, weights = MCMCsampler.sample!(kernel, model, cv, 50 + 2*n_samples, rng)

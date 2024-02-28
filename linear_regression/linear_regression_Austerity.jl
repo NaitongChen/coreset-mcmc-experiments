@@ -1,11 +1,11 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using LinearAlgebra
 using Distributions
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -24,15 +24,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = LinearRegressionModel(length(data), data, reduce(hcat, data)', d, 1, zeros(length(data[1])), nothing)
+    model = MCMCsampler.LinearRegressionModel(length(data), data, reduce(hcat, data)', d, 1, zeros(length(data[1])), nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = QualityBasedMetropolisHastings(σ = parse(Float64, args[3]))
-    cv = AusterityLogProbEstimator(batch_size = 100, ϵ = 0.05)
+    kernel = MCMCsampler.QualityBasedMetropolisHastings(σ = parse(Float64, args[3]))
+    cv = MCMCsampler.AusterityLogProbEstimator(batch_size = 100, ϵ = 0.05)
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time = MCMCsampler.sample!(kernel, model, cv, 2*n_samples, rng)

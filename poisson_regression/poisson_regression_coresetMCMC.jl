@@ -1,9 +1,9 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -23,7 +23,7 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = PoissonRegressionModel(length(data), data, reduce(hcat, data)', d, 1, nothing)
+    model = MCMCsampler.PoissonRegressionModel(length(data), data, reduce(hcat, data)', d, 1, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
@@ -31,11 +31,11 @@ function main(args)
     # Create the algorithm
     println("Initializing sampler")
     if parse(Float64, args[4]) == 1
-        kernel = CoresetMCMC(kernel = SliceSampler(n_passes=1), replicas = 2, α = t -> 0.5, delay = 1, train_iter = 50000, proj_n = model.N)
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> 0.5, delay = 1, train_iter = 50000, proj_n = model.N)
     else
-        kernel = CoresetMCMC(kernel = SliceSampler(n_passes=1), replicas = 2, α = t -> 1/(t^parse(Float64, args[4])), delay = 1, train_iter = 50000, proj_n = 10 * parse(Int, args[3]))
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> 1/(t^parse(Float64, args[4])), delay = 1, train_iter = 50000, proj_n = 10 * parse(Int, args[3]))
     end
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time, weights = MCMCsampler.sample!(kernel, model, cv, n_samples, rng)

@@ -1,11 +1,11 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using LinearAlgebra
 using Distributions
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -22,7 +22,7 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
+    model = MCMCsampler.SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
@@ -32,8 +32,8 @@ function main(args)
     sizes = parse.(Float64, split(args[3], "_"))
     prop_sample = (r, θ) -> proposal_sample(r, θ, sizes[1], sizes[2])
     prop_logpdf = (r, θ) -> proposal_logpdf(r, θ, sizes[1], sizes[2])
-    kernel = QualityBasedMetropolisHastings(σ = sizes[1], propose = prop_sample, proposal_logpdf = prop_logpdf)
-    cv = ConfidenceLogProbEstimator(δ = 0.05)
+    kernel = MCMCsampler.QualityBasedMetropolisHastings(σ = sizes[1], propose = prop_sample, proposal_logpdf = prop_logpdf)
+    cv = MCMCsampler.ConfidenceLogProbEstimator(δ = 0.05)
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time = MCMCsampler.sample!(kernel, model, cv, 2*n_samples, rng)

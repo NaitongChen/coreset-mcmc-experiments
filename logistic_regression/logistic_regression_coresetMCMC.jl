@@ -1,9 +1,9 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -22,7 +22,7 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
+    model = MCMCsampler.LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
@@ -30,13 +30,13 @@ function main(args)
     # Create the algorithm
     println("Initializing sampler")
     if parse(Float64, args[4]) == 1
-        kernel = CoresetMCMC(kernel = SliceSamplerMD(), replicas = 2, α = t -> 1, delay = 1, train_iter = 25000, proj_n = model.N)
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> 1, delay = 1, train_iter = 25000, proj_n = model.N)
     elseif parse(Float64, args[4]) == 2
-        kernel = CoresetMCMC(kernel = SliceSamplerMD(), replicas = 2, α = t -> 0.1, delay = 1, train_iter = 25000, proj_n = model.N)
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> 0.1, delay = 1, train_iter = 25000, proj_n = model.N)
     else
-        kernel = CoresetMCMC(kernel = SliceSamplerMD(), replicas = 2, α = t -> 10/(t^parse(Float64, args[4])), delay = 1, train_iter = 25000, proj_n = 5 * parse(Int, args[3]))
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> 10/(t^parse(Float64, args[4])), delay = 1, train_iter = 25000, proj_n = 5 * parse(Int, args[3]))
     end
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time, weights = MCMCsampler.sample!(kernel, model, cv, n_samples, rng)

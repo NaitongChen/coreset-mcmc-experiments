@@ -1,10 +1,10 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using LinearAlgebra
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -23,15 +23,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
+    model = MCMCsampler.LogisticRegressionModel(length(data), data, reduce(hcat, data)', d, log_reg_stratified_sampling)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = SGHMC(a = 0.0008, L=30, C=0.01*I, adapt=false)
-    cv = ModeLogProbEstimator(N = parse(Int, args[3]), tol = 1e-3, mode_n = 100)
+    kernel = MCMCsampler.SGHMC(a = 0.0008, L=30, C=0.01*I, adapt=false)
+    cv = MCMCsampler.ModeLogProbEstimator(N = parse(Int, args[3]), tol = 1e-3, mode_n = 100)
 
     println("Running sampler")
     θs, c_lp, c_g_lp, c_h_lp, c_time = MCMCsampler.sample!(kernel, model, cv, 2*n_samples, rng)

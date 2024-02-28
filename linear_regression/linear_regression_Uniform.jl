@@ -1,10 +1,10 @@
 using CSV
 using DataFrames
-using MCMCsampler
 using Random
 using JLD
 using Statistics
 using StatsBase
+include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
@@ -23,15 +23,15 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = LinearRegressionModel(length(data), data, reduce(hcat, data)', d, 1, zeros(length(data[1])), nothing)
+    model = MCMCsampler.LinearRegressionModel(length(data), data, reduce(hcat, data)', d, 1, zeros(length(data[1])), nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
 
     # Create the algorithm
     println("Initializing sampler")
-    kernel = SliceSamplerMD()
-    cv = CoresetLogProbEstimator(N = parse(Int, args[3]))
+    kernel = MCMCsampler.SliceSamplerMD()
+    cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
     cv.inds = sample(rng, [1:model.N;], cv.N; replace = false)
     cv.sub_dataset = reduce(hcat, @view(model.dataset[cv.inds]))'
     cv.weights = (model.N / cv.N) * ones(cv.N)
@@ -55,6 +55,3 @@ end
 
 println("Running sampler with $(ARGS)")
 main(ARGS)
-
-# args = ["1", "10000", "1000"] # seed n_sample subsample_size
-# main(args)
