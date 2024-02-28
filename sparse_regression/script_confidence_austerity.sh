@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in {1..10}
+for i in $(seq 1 10);
 do
     echo "$i / 10"
     julia -t auto sparse_regression_Confidence.jl $i 10000 0.001_0.5

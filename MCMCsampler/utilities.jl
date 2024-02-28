@@ -12,7 +12,7 @@ function leapfrog!(kernel::SHF, state::AbstractState, r::AbstractVector,
 	return state.θ, r
 end
 
-function find_map!(state::AbstractState, model::AbstractModel, cv::Union{ModeLogProbEstimator, TaylorLogProbEstimator})
+function find_map!(state::AbstractState, model::AbstractModel, cv::Union{ModeLogProbEstimator})
 	@unpack α, β1, β2, ϵ, tol = cv
 	cv_zero = ZeroLogProbEstimator(N = cv.mode_n)
 	update_estimator!(state, model, cv_zero, nothing, nothing, nothing)
