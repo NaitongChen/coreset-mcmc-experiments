@@ -115,10 +115,36 @@ end
 function project_sum(metaState::AbstractMetaState, model::AbstractModel, cv_zero::SizeBasedLogProbEstimator, cv::CoresetLogProbEstimator)
     proj = zeros(cv_zero.N, length(metaState.states))
 	if cv_zero.N != model.N
-		if !isnothing(model.sampler)
-			inds = sort(sample(metaState.states[1].rng, [1:model.N;], cv_zero.N; replace = false))
+		if isnothing(cv_zero.inds_set)
+			if !isnothing(model.sampler)
+				cv_zero.inds_set = [1:model.N;]
+				cv_zero.total_size = model.N
+				cv_zero.current_location = 1
+				cv_zero.inds_length = cv_zero.N
+			else
+				cv_zero.inds_set = setdiff([1:model.N;], cv.inds)
+				cv_zero.total_size = model.N - cv.N
+				cv_zero.current_location = 1
+				cv_zero.inds_length = cv_zero.N - cv.N
+			end
+		end
+
+		if cv_zero.current_location + cv_zero.inds_length - 1 <= cv_zero.total_size
+			inds = cv_zero.inds_set[cv_zero.current_location:(cv_zero.current_location + cv_zero.inds_length - 1)]
+			if cv_zero.current_location + cv_zero.inds_length <= cv_zero.total_size
+				cv_zero.current_location = cv_zero.current_location + cv_zero.inds_length
+			else
+				cv_zero.current_location = 1
+			end
 		else
-			inds = sort(vcat(cv.inds, sample(metaState.states[1].rng, setdiff([1:model.N;], cv.inds), cv_zero.N - cv.N; replace = false)))
+			inds = cv_zero.inds_set[cv_zero.current_location:end]
+			l = length(inds)
+			inds = vcat(cv_zero.inds_set[1:(cv_zero.inds_length - l)], inds)
+			cv_zero.current_location = cv_zero.inds_length - l + 1
+		end
+
+		if isnothing(model.sampler)
+			inds = vcat(cv.inds, inds)
 		end
 		update_estimator!(metaState.states[1], model, cv_zero, nothing, nothing, inds)
 	end

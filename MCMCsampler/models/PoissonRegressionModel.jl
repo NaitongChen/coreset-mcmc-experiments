@@ -8,7 +8,11 @@
 end
 
 function init!(rng::AbstractRNG, model::PoissonRegressionModel)
-    θ0 = zeros(length(model.dataset[1])-1)
+    if isnothing(init_val)
+        θ0 = zeros(length(model.dataset[1])-1)
+    else
+        θ0 = init_val
+    end
     # [β0, β1, ..., βd]
     return State(θ = θ0, rng = rng)
 end

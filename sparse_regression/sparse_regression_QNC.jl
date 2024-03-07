@@ -8,12 +8,12 @@ include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
-    data = JLD.load("../data/sparse_regression_10000.jld")["data"]
-    
+    data = JLD.load("../data/sparse_regression_50000.jld")["data"]
+
     N = length(data)
-    d = 5
+    D = 10
     
-    @assert length(args) == 3 "Error: script has 3 mandatory cmd line args"
+    @assert length(args) == 4 "Error: script has 4 mandatory cmd line args"
 
     # Initialize the rng
     println("Initializing RNG")
@@ -21,7 +21,8 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = MCMCsampler.SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
+    datamat = Matrix(reduce(hcat, data)')
+    model = MCMCsampler.SparseRegressionModel(length(data), D, data, datamat, 0.1, 0.1, 1, 10, 1/10, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
@@ -35,10 +36,10 @@ function main(args)
     θs, c_lp, c_g_lp, c_h_lp, c_time, weights = MCMCsampler.sample!(kernel, model, cv, 50 + 2*n_samples, rng)
     println(sum(θs[end-n_samples+1:end]) / length(θs[end-n_samples+1:end]))
     ts = reduce(hcat, θs)'[end-n_samples+1:end,:]
-    D_stan = JLD.load("../stan_results/sparse_regression_big.jld")["θs"]
-    m_method = vec(mean(ts[:,vcat(1:5, 11)], dims=1))
-    v_method = cov(ts[:,vcat(1:5, 11)])
-    kl_est = kl_gaussian(m_method, v_method, vec(mean(D_stan[:,vcat(1:5, 11)], dims=1)), cov(D_stan[:,vcat(1:5, 11)]))
+    D_stan = JLD.load("../stan_results/sparse_regression_results_50000.jld")["θs"]
+    m_method = vec(mean(ts[:,vcat(1:10, 21)], dims=1))
+    v_method = cov(ts[:,vcat(1:10, 21)])
+    kl_est = kl_gaussian(m_method, v_method, vec(mean(D_stan[:,vcat(1:10, 21)], dims=1)), cov(D_stan[:,vcat(1:0, 21)]))
     println(c_lp[end])
     println(c_time[end])
 

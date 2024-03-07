@@ -9,8 +9,8 @@ include("../plotting_util.jl")
 ########################
 # legends
 ########################
-names = ["CoresetMCMC (SG)", "QNC", "SHF", "Uniform", "CoresetMCMC"]
-colours = [palette(:Paired_8)[2], palette(:Paired_10)[10], palette(:Paired_8)[4], palette(:Paired_10)[8], palette(:Paired_8)[1]]
+names = ["CoresetMCMC-S", "QNC", "SHF", "Uniform", "CoresetMCMC"]
+colours = [palette(:Paired_8)[1], palette(:Paired_10)[10], palette(:Paired_8)[4], palette(:Paired_10)[8], palette(:Paired_8)[2]]
 
 Ms = [10, 20, 50, 100, 200, 500]
 n_run = 10
@@ -46,6 +46,9 @@ train_qnc = zeros(n_run, dat_size)
 train_shf = zeros(n_run, dat_size)
 train_unif = zeros(n_run, dat_size)
 
+cm_settings = ["1_0.1_", "2_0.1_", "2_0.1_", "1_0.1_", "2_0.3_", "0.5_0.3_"]
+cmf_settings = ["2_", "0.5_", "0.5_", "0.1_", "0.05_", "0.01_"]
+
 ################################
 ################################
 # KL coreset size
@@ -55,8 +58,8 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        KL_cm[i,j] = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
-        KL_cmf[i,j] = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
+        KL_cm[i,j] = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
+        KL_cmf[i,j] = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         KL_shf[i,j] = load("poisson_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         KL_unif[i,j] = load("poisson_regression_uniform_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         if isfile("new_poisson_regression_QNC_" * string(Ms[j]) * "_" * string(i) * ".jld")
@@ -67,24 +70,34 @@ Threads.@threads for i in 1:n_run
     end
 end
 
-plot(Ms[4:6], get_medians(KL_qnc[:, 4:6]), label = names[2], color = colours[2], ribbon = get_percentiles(KL_qnc[:,4:6]))
-plot!(Ms, get_medians(KL_cm), label = names[1], color = colours[1], ribbon = get_percentiles(KL_cm))
-plot!(Ms, get_medians(KL_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(KL_cmf))
-plot!(Ms, get_medians(KL_shf), label = names[3], color = colours[3], ribbon = get_percentiles(KL_shf))
-plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.65,1), margin=5mm)
-yticks!(10. .^[-2:1:20;])
-xticks!(Ms)
-ylabel!("Two-Moment KL")
-xlabel!("coreset size")
-savefig("plots/kl_coreset_cut.png")
+mean(KL_cmf, dims=1)
+# 0.01 # 5.73293e6  9.53662e5  84009.6  12646.5  45.9536  1.88818
+# 0.05 # 3.80645e6  2.7239e5  15988.4  1353.39  5.17458  10.6273
+# 0.1  # 2.33935e6  91126.2  11134.2  20.1879  11.6852  11.5051
+# 0.5  # 9.58379e5  46243.4  4793.73  33.3177  138.828  3.01325
+# 1    # 9.0125e5  53645.9  7634.81  239.41  5166.97  438.849
+# 2    # 1.2923e6  67453.9  10341.0  4863.44  3674.47  132.876
+# 5    # 1.68916e6  1.68069e5  19084.5  8790.47  4954.51  2507.94
+# 10   # 2.83071e6  319368.0  39591.1  2259.92  10917.5  11393.6
+
+mean(KL_cm, dims=1)
+# 0.5 0.1 # 1.83123e6  1.02963e5  14163.4    2414.82  601.067  341.951
+# 0.5 0.3 # 5.19692e6  6.46996e5  50383.9    7758.25  578.9    162.232
+# 0.5 0.5 # 6.19958e6  1.29741e6  201527.0   70080.3  8576.13  397.318
+# 1 0.1   # 1.17057e6  59649.7    9060.31    859.581  645.945  283.058
+# 1 0.3   # 4.29411e6  4.3832e5   35953.5    3341.37  511.769  258.204
+# 1 0.5   # 6.03022e6  1.1812e6   1.64615e5  37101.7  3134.19  204.791
+# 2 0.1   # 1.30559e6  52200.4    8899.34    1081.83  695.594  328.917
+# 2 0.3   # 2.90855e6  2.29157e5  20258.4    2666.51  489.592  268.28
+# 2 0.5   # 5.69301e6  9.71772e5  1.09346e5  18790.3  1130.78  171.361
 
 plot(Ms, get_medians(KL_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(KL_qnc))
 plot!(Ms, get_medians(KL_cm), label = names[1], color = colours[1], ribbon = get_percentiles(KL_cm))
 plot!(Ms, get_medians(KL_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(KL_cmf))
 plot!(Ms, get_medians(KL_shf), label = names[3], color = colours[3], ribbon = get_percentiles(KL_shf))
-plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.65,1), margin=5mm)
+plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 yticks!(10. .^[-2:1:20;])
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 ylabel!("Two-Moment KL")
 xlabel!("coreset size")
 savefig("plots/kl_coreset.png")
@@ -100,9 +113,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_cm[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_cmf[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
         m_method = load("poisson_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_shf[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
@@ -119,22 +132,11 @@ end
 
 plot(Ms, get_medians(mrel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(mrel_cm))
 plot!(Ms, get_medians(mrel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(mrel_cmf))
-plot!(Ms[4:6], get_medians(mrel_qnc[:, 4:6]), label = names[2], color = colours[2], ribbon = get_percentiles(mrel_qnc[:,4:6]))
-plot!(Ms, get_medians(mrel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(mrel_shf))
-plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.11,0.27), margin=5mm)
-yticks!(10. .^[-10:1:6;])
-xticks!(Ms)
-ylabel!("Relative mean error")
-xlabel!("coreset size")
-savefig("plots/mrel_coreset_cut.png")
-
-plot(Ms, get_medians(mrel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(mrel_cm))
-plot!(Ms, get_medians(mrel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(mrel_cmf))
 plot!(Ms, get_medians(mrel_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(mrel_qnc))
 plot!(Ms, get_medians(mrel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(mrel_shf))
-plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.11,0.27), margin=5mm)
+plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 yticks!(10. .^[-10:1:6;])
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 ylabel!("Relative mean error")
 xlabel!("coreset size")
 savefig("plots/mrel_coreset.png")
@@ -150,9 +152,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_cmf[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_cm[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
         m_method = load("poisson_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_shf[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
@@ -169,24 +171,13 @@ end
 
 plot(Ms, get_medians(srel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(srel_cm))
 plot!(Ms, get_medians(srel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(srel_cmf))
-plot!(Ms[4:6], get_medians(srel_qnc[:, 4:6]), label = names[2], color = colours[2], ribbon = get_percentiles(srel_qnc[:,4:6]))
-plot!(Ms, get_medians(srel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(srel_shf))
-plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.6), margin=5mm)
-ylabel!("Relative cov error")
-xlabel!("coreset size")
-yticks!(10. .^[-2:1:6;])
-xticks!(Ms)
-savefig("plots/srel_coreset_cut.png")
-
-plot(Ms, get_medians(srel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(srel_cm))
-plot!(Ms, get_medians(srel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(srel_cmf))
 plot!(Ms, get_medians(srel_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(srel_qnc))
 plot!(Ms, get_medians(srel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(srel_shf))
-plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,1), margin=5mm)
+plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("Relative cov error")
 xlabel!("coreset size")
 yticks!(10. .^[-2:1:6;])
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/srel_coreset.png")
 
 ################################
@@ -210,8 +201,8 @@ for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "0.3_" *string(Ms[j]) * "_" * string(i) * ".jld", "θs")
-        time = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] *string(Ms[j]) * "_" * string(i) * ".jld", "θs")
+        time = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         time = time[end] - time[50001]
         m_method = reduce(hcat, m_method)'
         m_method = m_method[100001:end, :]
@@ -219,8 +210,8 @@ for i in 1:n_run
         split[:,1,:] = m_method
         ess_cm[i,j] = minimum(ess(split)) / time
 
-        m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "θs")
-        time = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "θs")
+        time = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         time = time[end] - time[50001]
         m_method = reduce(hcat, m_method)'
         m_method = m_method[100001:end, :]
@@ -262,26 +253,14 @@ end
 
 plot(Ms, get_medians(ess_cm), label = names[1], color = colours[1], ribbon = get_percentiles(ess_cm))
 plot!(Ms, get_medians(ess_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(ess_cmf))
-plot!(Ms[4:6], get_medians(ess_qnc[:, 4:6]), label = names[2], color = colours[2], ribbon = get_percentiles(ess_qnc[:,4:6]))
-plot!(Ms, get_medians(ess_shf), label = names[3], color = colours[3], ribbon = get_percentiles(ess_shf))
-plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.4), margin=5mm)
-ylabel!("min ESS/s")
-xlabel!("coreset size")
-yticks!(10. .^[-2:1:6;])
-ylims!((10^0, 10^3))
-xticks!(Ms)
-savefig("plots/ess_coreset_cut.png")
-
-plot(Ms, get_medians(ess_cm), label = names[1], color = colours[1], ribbon = get_percentiles(ess_cm))
-plot!(Ms, get_medians(ess_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(ess_cmf))
 plot!(Ms, get_medians(ess_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(ess_qnc))
 plot!(Ms, get_medians(ess_shf), label = names[3], color = colours[3], ribbon = get_percentiles(ess_shf))
-plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.4), margin=5mm)
+plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("min ESS/s")
 xlabel!("coreset size")
 yticks!(10. .^[-2:1:6;])
 ylims!((10^0, 10^3))
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/ess_coreset.png")
 
 ################################
@@ -295,9 +274,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_cm[i,j] = m_method[50000]
-        m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("new_poisson_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_cmf[i,j] = m_method[50000]
         m_method = load("poisson_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_shf[i,j] = m_method[1]
@@ -314,27 +293,16 @@ end
 
 plot(Ms, get_medians(train_cm), label = names[1], color = colours[1], ribbon = get_percentiles(train_cm))
 plot!(Ms, get_medians(train_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(train_cmf))
-plot!(Ms[4:6], get_medians(train_qnc[:, 4:6]), label = names[2], color = colours[2], ribbon = get_percentiles(train_qnc[:,4:6]))
-plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.5), margin=5mm)
-ylabel!("Training time (s)")
-xlabel!("coreset size")
-yticks!([100, 500, 1000, 2000, 3000, 4000, 5000, 6000])
-# ylims!((10^2.2, 10^2.8))
-xticks!(Ms)
-savefig("plots/train_coreset_cut.png")
-
-plot(Ms, get_medians(train_cm), label = names[1], color = colours[1], ribbon = get_percentiles(train_cm))
-plot!(Ms, get_medians(train_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(train_cmf))
 plot!(Ms, get_medians(train_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(train_qnc))
-plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.5), margin=5mm)
+plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), yscale=:log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("Training time (s)")
 xlabel!("coreset size")
-yticks!([100, 500, 1000, 2000, 3000, 4000, 5000, 6000])
-# ylims!((10^2.2, 10^2.8))
-xticks!(Ms)
+# yticks!([100, 500, 1000, 2000, 3000, 4000, 5000, 6000])
+ylims!((10^1, 10^4))
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/train_coreset.png")
 
-JLD2.save("results_coresets.jld", "KL_cm", KL_cm,
+JLD2.save("results_coresets_new.jld", "KL_cm", KL_cm,
                             "KL_cmf", KL_cmf,
                             "KL_qnc", KL_qnc,
                             "KL_shf", KL_shf,

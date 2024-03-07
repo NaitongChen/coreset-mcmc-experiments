@@ -9,8 +9,8 @@ include("../plotting_util.jl")
 ########################
 # legends
 ########################
-names = ["CoresetMCMC (SG)", "QNC", "SHF", "Uniform", "CoresetMCMC"]
-colours = [palette(:Paired_8)[2], palette(:Paired_10)[10], palette(:Paired_8)[4], palette(:Paired_10)[8], palette(:Paired_8)[1]]
+names = ["CoresetMCMC-S", "QNC", "SHF", "Uniform", "CoresetMCMC"]
+colours = [palette(:Paired_8)[1], palette(:Paired_10)[10], palette(:Paired_8)[4], palette(:Paired_10)[8], palette(:Paired_8)[2]]
 
 Ms = [10, 20, 50, 100, 200, 500]
 n_run = 10
@@ -46,6 +46,9 @@ train_qnc = zeros(n_run, dat_size)
 train_shf = zeros(n_run, dat_size)
 train_unif = zeros(n_run, dat_size)
 
+cm_settings = ["10_0.1_", "10_0.1_", "10_0.1_", "10_0.3_", "1_0.1_", "10_0.5_"]
+cmf_settings = ["0.1_", "5_", "1_", "1_", "1_", "0.1_"]
+
 ################################
 ################################
 # KL coreset size
@@ -55,8 +58,8 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        KL_cm[i,j] = load("logistic_regression_coresetMCMC_" * "0.5_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
-        KL_cmf[i,j] = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
+        KL_cm[i,j] = load("logistic_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
+        KL_cmf[i,j] = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         KL_shf[i,j] = load("logistic_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         KL_unif[i,j] = load("logistic_regression_uniform_" * string(Ms[j]) * "_" * string(i) * ".jld", "kl")
         if isfile("logistic_regression_QNC_" * string(Ms[j]) * "_" * string(i) * ".jld")
@@ -67,29 +70,37 @@ Threads.@threads for i in 1:n_run
     end
 end
 
+mean(KL_cmf, dims=1)
+# 0.01 # 6.9742e13  1.83475e6  1937.93  1652.92  1168.4  698.455
+# 0.1  # 6.9742e13  1.78222e6  1792.73  1348.87  531.141  4.29366
+# 1    # 7.74251e13  1.37033e6  893.379  653.088  297.095  10.1104
+# 5    # 8.96881e13  6.65649e5  4207.44  2947.12  666.279  64.2685
+# 10   # 6.9742e13  2.72333e6  12203.8  7586.31  352.45  42.611
+# 20   # 6.9742e13  1.26127e7  8866.17  39777.6  386.871  67.8066
+
+mean(KL_cm, dims=1)
+# 1 0.1 # 7.75922e13  1.28017e6  1337.5   830.802  181.726  47.3653
+# 1 0.3 # 6.9742e13   1.24507e6  1875.54  1503.28  883.622  92.3194
+# 1 0.5 # 6.9742e13   1.13557e6  1936.92  1664.04  1180.29  712.116
+# 10 0.1# 6.9742e13   4.20355e5  1087.09  4764.49  311.905  69.7717
+# 10 0.3# 1.33819e14  1.08863e6  1257.27  604.974  244.633  17.7321
+# 10 0.5# 8.97128e13  1.01361e6  1811.08  1361.16  582.203  11.397
+# 20 0.1# 6.97421e13  9.73461e5  8561.65  605.808  255.413  62.3592
+# 20 0.3# 6.9742e13  9.44518e5   1306.48  632.978  214.141  28.0332
+# 20 0.5# 1.13848e14  1.52241e6  1628.22  950.767  226.228  13.4313
+
 # coreset size 10 really bad, hence ignore
 plot(Ms, get_medians(KL_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(KL_qnc))
 plot!(Ms, get_medians(KL_cm), label = names[1], color = colours[1], ribbon = get_percentiles(KL_cm))
 plot!(Ms, get_medians(KL_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(KL_cmf))
 plot!(Ms, get_medians(KL_shf), label = names[3], color = colours[3], ribbon = get_percentiles(KL_shf))
-plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.95), margin=5mm)
+plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 yticks!(10. .^[-2, -1, 0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16])
 ylabel!("Two-Moment KL")
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 ylims!((10^0, 10^15))
 xlabel!("coreset size")
 savefig("plots/kl_coreset.png")
-
-plot(Ms[3:end], get_medians(KL_qnc[:,3:end]), label = names[2], color = colours[2], ribbon = get_percentiles(KL_qnc[:,3:end]))
-plot!(Ms, get_medians(KL_cm), label = names[1], color = colours[1], ribbon = get_percentiles(KL_cm))
-plot!(Ms, get_medians(KL_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(KL_cmf))
-plot!(Ms, get_medians(KL_shf), label = names[3], color = colours[3], ribbon = get_percentiles(KL_shf))
-plot!(Ms, get_medians(KL_unif), label = names[4], color = colours[4], ribbon = get_percentiles(KL_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.6,0.62), margin=5mm)
-yticks!(10. .^[-2, -1, 0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16])
-ylabel!("Two-Moment KL")
-xticks!(Ms)
-xlabel!("coreset size")
-savefig("plots/kl_coreset_cut.png")
 
 ################################
 ################################
@@ -102,9 +113,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("logistic_regression_coresetMCMC_" * "0.5_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
+        m_method = load("logistic_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_cm[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
-        m_method = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
+        m_method = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_cmf[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
         m_method = load("logistic_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "mean")
         mrel_shf[i,j] = norm(m_method - stan_mean) / norm(stan_mean)
@@ -123,23 +134,12 @@ plot(Ms, get_medians(mrel_qnc), label = names[2], color = colours[2], ribbon = g
 plot!(Ms, get_medians(mrel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(mrel_cm))
 plot!(Ms, get_medians(mrel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(mrel_cmf))
 plot!(Ms, get_medians(mrel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(mrel_shf))
-plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,1), margin=5mm)
+plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 yticks!(10. .^[-2:1:6;])
 ylabel!("Relative mean error")
 xlabel!("coreset size")
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/mrel_coreset.png")
-
-plot(Ms[3:6], get_medians(mrel_qnc[:, 3:6]), label = names[2], color = colours[2], ribbon = get_percentiles(mrel_qnc[:,3:6]))
-plot!(Ms, get_medians(mrel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(mrel_cm))
-plot!(Ms, get_medians(mrel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(mrel_cmf))
-plot!(Ms, get_medians(mrel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(mrel_shf))
-plot!(Ms, get_medians(mrel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(mrel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.6,0.58), margin=5mm)
-yticks!(10. .^[-2:1:6;])
-ylabel!("Relative mean error")
-xlabel!("coreset size")
-xticks!(Ms)
-savefig("plots/mrel_coreset_cut.png")
 
 ################################
 ################################
@@ -152,9 +152,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
+        m_method = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_cmf[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
-        m_method = load("logistic_regression_coresetMCMC_" * "0.5_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
+        m_method = load("logistic_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_cm[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
         m_method = load("logistic_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "cov")
         srel_shf[i,j] = norm(m_method - stan_cov) / norm(stan_cov)
@@ -169,26 +169,15 @@ Threads.@threads for i in 1:n_run
     end
 end
 
-plot(Ms[3:6], get_medians(srel_qnc[:, 3:6]), label = names[2], color = colours[2], ribbon = get_percentiles(srel_qnc[:,3:6]))
-plot!(Ms, get_medians(srel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(srel_cm))
-plot!(Ms, get_medians(srel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(srel_cmf))
-plot!(Ms, get_medians(srel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(srel_shf))
-plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.53), margin=5mm)
-ylabel!("Relative cov error")
-xlabel!("coreset size")
-yticks!(10. .^[-2:1:6;])
-xticks!(Ms)
-savefig("plots/srel_coreset_cut.png")
-
 plot(Ms, get_medians(srel_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(srel_qnc))
 plot!(Ms, get_medians(srel_cm), label = names[1], color = colours[1], ribbon = get_percentiles(srel_cm))
 plot!(Ms, get_medians(srel_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(srel_cmf))
 plot!(Ms, get_medians(srel_shf), label = names[3], color = colours[3], ribbon = get_percentiles(srel_shf))
-plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,1), margin=5mm)
+plot!(Ms, get_medians(srel_unif), label = names[4], color = colours[4], ribbon = get_percentiles(srel_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("Relative cov error")
 xlabel!("coreset size")
 yticks!(10. .^[-2:1:10;])
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/srel_coreset.png")
 
 ################################
@@ -212,8 +201,8 @@ for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("logistic_regression_coresetMCMC_" * "0.5_" *string(Ms[j]) * "_" * string(i) * ".jld", "θs")
-        time = load("logistic_regression_coresetMCMC_" * "0.5_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("logistic_regression_coresetMCMC_" * cm_settings[j] *string(Ms[j]) * "_" * string(i) * ".jld", "θs")
+        time = load("logistic_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         time = time[end] - time[25001]
         m_method = reduce(hcat, m_method)'
         m_method = m_method[50001:end, :]
@@ -221,8 +210,8 @@ for i in 1:n_run
         split[:,1,:] = m_method
         ess_cm[i,j] = minimum(ess(split)) / time
 
-        m_method = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "θs")
-        time = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "θs")
+        time = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         time = time[end] - time[25001]
         m_method = reduce(hcat, m_method)'
         m_method = m_method[50001:end, :]
@@ -262,28 +251,16 @@ for i in 1:n_run
     end
 end
 
-plot(Ms[3:6], get_medians(ess_qnc[:, 3:6]), label = names[2], color = colours[2], ribbon = get_percentiles(ess_qnc[:,3:6]))
-plot!(Ms, get_medians(ess_cm), label = names[1], color = colours[1], ribbon = get_percentiles(ess_cm))
-plot!(Ms, get_medians(ess_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(ess_cmf))
-plot!(Ms, get_medians(ess_shf), label = names[3], color = colours[3], ribbon = get_percentiles(ess_shf))
-plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.55,0.62), margin=5mm)
-ylabel!("min ESS/s")
-xlabel!("coreset size")
-yticks!(10. .^[-2:1:6;])
-ylims!((10^0, 10^3))
-xticks!(Ms)
-savefig("plots/ess_coreset_cut.png")
-
 plot(Ms, get_medians(ess_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(ess_qnc))
 plot!(Ms, get_medians(ess_cm), label = names[1], color = colours[1], ribbon = get_percentiles(ess_cm))
 plot!(Ms, get_medians(ess_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(ess_cmf))
 plot!(Ms, get_medians(ess_shf), label = names[3], color = colours[3], ribbon = get_percentiles(ess_shf))
-plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=8, legend=(0.55,0.62), margin=5mm)
+plot!(Ms, get_medians(ess_unif), label = names[4], color = colours[4], ribbon = get_percentiles(ess_unif), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("min ESS/s")
 xlabel!("coreset size")
 yticks!(10. .^[-2:1:6;])
 ylims!((10^0, 10^3))
-xticks!(Ms)
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/ess_coreset.png")
 
 ################################
@@ -297,9 +274,9 @@ Threads.@threads for i in 1:n_run
     println(i)
     for j in 1:dat_size
         println(j)
-        m_method = load("logistic_regression_coresetMCMC_" * "0.5_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("logistic_regression_coresetMCMC_" * cm_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_cm[i,j] = m_method[25000]
-        m_method = load("logistic_regression_coresetMCMC_" * "2_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
+        m_method = load("logistic_regression_coresetMCMC_" * cmf_settings[j] * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_cmf[i,j] = m_method[25000]
         m_method = load("logistic_regression_SHF_" * string(Ms[j]) * "_" * string(i) * ".jld", "c_time")
         train_shf[i,j] = m_method[1]
@@ -314,29 +291,18 @@ Threads.@threads for i in 1:n_run
     end
 end
 
-plot(Ms[3:6], get_medians(train_qnc[:, 3:6]), label = names[2], color = colours[2], ribbon = get_percentiles(train_qnc[:,3:6]))
-plot!(Ms, get_medians(train_cm), label = names[1], color = colours[1], ribbon = get_percentiles(train_cm))
-plot!(Ms, get_medians(train_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(train_cmf))
-plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.25), margin=5mm)
-ylabel!("Training time (s)")
-xlabel!("coreset size")
-yticks!(10. .^[1:1:4;])
-xticks!(Ms)
-ylims!((10^1, 10^4))
-savefig("plots/train_coreset_cut.png")
-
 plot(Ms, get_medians(train_qnc), label = names[2], color = colours[2], ribbon = get_percentiles(train_qnc))
 plot!(Ms, get_medians(train_cm), label = names[1], color = colours[1], ribbon = get_percentiles(train_cm))
 plot!(Ms, get_medians(train_cmf), label = names[5], color = colours[5], ribbon = get_percentiles(train_cmf))
-plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), yscale = :log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=(0.6,0.25), margin=5mm)
+plot!(Ms, get_medians(train_shf), label = names[3], color = colours[3], ribbon = get_percentiles(train_shf), yscale=:log10, guidefontsize=20, tickfontsize=15, formatter=:plain, legendfontsize=10, legend=false, margin=5mm)
 ylabel!("Training time (s)")
 xlabel!("coreset size")
-yticks!(10. .^[1:1:4;])
-xticks!(Ms)
-ylims!((10^1, 10^4))
+ylims!((10^0, 10^4))
+# yticks!([100, 500, 1000, 2000, 3000, 4000, 5000, 6000])
+xticks!(Ms[vcat(1,3:6)])
 savefig("plots/train_coreset.png")
 
-JLD2.save("results_coresets.jld", "KL_cm", KL_cm,
+JLD2.save("results_coresets_new.jld", "KL_cm", KL_cm,
                             "KL_cmf", KL_cmf,
                             "KL_qnc", KL_qnc,
                             "KL_shf", KL_shf,

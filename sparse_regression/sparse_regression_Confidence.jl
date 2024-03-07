@@ -9,12 +9,12 @@ include("../MCMCsampler/MCMCsampler.jl")
 include("../util.jl")
 
 function main(args)
-    data = JLD.load("../data/sparse_regression_10000.jld")["data"]
-    
+    data = JLD.load("../data/sparse_regression_50000.jld")["data"]
+
     N = length(data)
-    d = 5
+    D = 10
     
-    @assert length(args) == 3 "Error: script has 3 mandatory cmd line args"
+    @assert length(args) == 4 "Error: script has 4 mandatory cmd line args"
 
     # Initialize the rng
     println("Initializing RNG")
@@ -22,7 +22,8 @@ function main(args)
 
     # Create the model
     println("Initializing model")
-    model = MCMCsampler.SparseRegressionModel(length(data), d, data, Matrix(reduce(hcat, data)'), 0.2, 0.1, 1, 10, 1/10, nothing)
+    datamat = Matrix(reduce(hcat, data)')
+    model = MCMCsampler.SparseRegressionModel(length(data), D, data, datamat, 0.1, 0.1, 1, 10, 1/10, nothing)
 
     # parse number of samples
     n_samples = parse(Int, args[2])
@@ -39,10 +40,10 @@ function main(args)
     θs, c_lp, c_g_lp, c_h_lp, c_time = MCMCsampler.sample!(kernel, model, cv, 2*n_samples, rng)
     println(sum(θs[end-n_samples+1:end]) / length(θs[end-n_samples+1:end]))
     ts = reduce(hcat, θs)'[end-n_samples+1:end,:]
-    D_stan = JLD.load("../stan_results/sparse_regression_big.jld")["θs"]
-    m_method = vec(mean(ts[:,vcat(1:5, 11)], dims=1))
-    v_method = cov(ts[:,vcat(1:5, 11)])
-    kl_est = kl_gaussian(m_method, v_method, vec(mean(D_stan[:,vcat(1:5, 11)], dims=1)), cov(D_stan[:,vcat(1:5, 11)]))
+    D_stan = JLD.load("../stan_results/sparse_regression_results_50000.jld")["θs"]
+    m_method = vec(mean(ts[:,vcat(1:10, 21)], dims=1))
+    v_method = cov(ts[:,vcat(1:10, 21)])
+    kl_est = kl_gaussian(m_method, v_method, vec(mean(D_stan[:,vcat(1:10, 21)], dims=1)), cov(D_stan[:,vcat(1:0, 21)]))
     println(c_lp[end])
     println(c_time[end])
 
@@ -53,14 +54,14 @@ end
 
 function proposal_sample(rng, θ, σ, p)
     θnew = zeros(length(θ))
-    θnew[1:5] = rand(rng, MvNormal(θ[1:5], σ * I))
+    θnew[1:10] = rand(rng, MvNormal(θ[1:10], σ * I))
     θnew[end] = rand(rng, truncated(Normal(θ[end], σ), lower=0))
-    θnew[6:10] = rand(rng, Bernoulli(p), 5)
+    θnew[11:20] = rand(rng, Bernoulli(p), 10)
     return θnew
 end
 
 function proposal_logpdf(θ, θ_given, σ, p)
-    return logpdf(MvNormal(θ_given[1:5], σ * I), θ[1:5]) + 5*log(p) + logpdf(truncated(Normal(θ_given[end], σ), lower=0), θ[end])
+    return logpdf(MvNormal(θ_given[1:10], σ * I), θ[1:10]) + sum(logpdf.(Bernoulli(p), θ[11:20])) + logpdf(truncated(Normal(θ_given[end], σ), lower=0), θ[end])
 end
 
 println("Running sampler with $(ARGS)")

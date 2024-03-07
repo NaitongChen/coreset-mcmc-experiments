@@ -4,6 +4,12 @@
     sub_dataset::Union{AbstractArray, Nothing} = nothing
     sub_xp::Union{AbstractArray, Nothing} = nothing
     weights::Union{AbstractArray, Nothing} = nothing
+
+    # keep track of scan
+    inds_set::Union{AbstractArray, Nothing} = nothing
+    total_size::Union{Int64, Nothing} = nothing
+    current_location::Union{Int64, Nothing} = nothing # start of segment
+    inds_length::Union{Int64, Nothing} = nothing
 end
 
 function update_estimator!(state::AbstractState, model::AbstractModel, cv::ZeroLogProbEstimator, 

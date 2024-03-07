@@ -29,11 +29,11 @@ function init!(rng::AbstractRNG, model::SparseRegressionModel; init_val::Any = n
 end
 
 function log_prior(θ, model::SparseRegressionModel)
-    ret = logpdf(InverseGamma(model.ν/2, model.ν*model.λ/2), θ[end]) + sum(logpdf.(Bernoulli(model.p), θ[6:10]))
+    ret = logpdf(InverseGamma(model.ν/2, model.ν*model.λ/2), θ[end]) + sum(logpdf.(Bernoulli(model.p), θ[(model.d+1):(2*model.d)]))
     iszerovec = (θ[(model.d+1):(2*model.d)] .== 0)
     diag_entry = (iszerovec .* 1. + (1 .- iszerovec) .* model.c) .* model.τ
     Vβ = diagm(diag_entry.^2)
-    ret += logpdf(MvNormal(zeros(model.d), Vβ), θ[1:5])
+    ret += logpdf(MvNormal(zeros(model.d), Vβ), θ[1:model.d])
 end
 
 grad_log_prior(θ, model::SparseRegressionModel) = error("not implemented")

@@ -10,7 +10,7 @@ include("../plotting_util.jl")
 ########################
 # legends
 ########################
-names = ["CoresetMCMC (SG)", "QNC", "SHF", "Uniform", "Austerity", "Confidence", "SGLD", "SGHMC", "CoresetMCMC"]
+names = ["CoresetMCMC-S", "QNC", "SHF", "Uniform", "Austerity", "Confidence", "SGLD", "SGHMC", "CoresetMCMC"]
 colours = [palette(:Paired_8)[1], palette(:Paired_10)[10], palette(:Paired_8)[4], palette(:Paired_10)[8],
             palette(:Paired_12)[12], palette(:Paired_10)[9], palette(:Paired_8)[3], palette(:Paired_10)[7],
             palette(:Paired_8)[2]]
@@ -30,7 +30,7 @@ trains = zeros(n_run, 9)
 ################################
 Threads.@threads for i in 1:n_run
     println(i)
-    KLs[i,1] = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(500) * "_" * string(i) * ".jld", "kl")
+    KLs[i,1] = load("new_poisson_regression_coresetMCMC_" * "0.5_0.3_" * string(500) * "_" * string(i) * ".jld", "kl")
     if isfile("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld")
         KLs[i,2] = load("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld", "kl")
     else
@@ -42,7 +42,7 @@ Threads.@threads for i in 1:n_run
     KLs[i,6] = load("poisson_regression_confidence_" * "0.01_" * string(i) * ".jld", "kl")
     KLs[i,7] = load("poisson_regression_sgld_" * string(i) * ".jld", "kl")
     KLs[i,8] = load("poisson_regression_sghmc_" * string(i) * ".jld", "kl")
-    KLs[i,9] = load("new_poisson_regression_coresetMCMC_" * "1_" * string(500) * "_" * string(i) * ".jld", "kl")
+    KLs[i,9] = load("new_poisson_regression_coresetMCMC_" * "0.01_" * string(500) * "_" * string(i) * ".jld", "kl")
 end
 
 boxplot([names[1]], KLs[:,1], label = names[1], color = colours[1])
@@ -53,7 +53,7 @@ boxplot!([names[4]], KLs[:,4], label = names[4], color = colours[4])
 boxplot!([names[5]], KLs[:,5], label = names[5], color = colours[5])
 boxplot!([names[6]], KLs[:,6], label = names[6], color = colours[6])
 boxplot!([names[7]], KLs[:,7], label = names[7], color = colours[7])
-boxplot!([names[8]], KLs[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=-20)
+boxplot!([names[8]], KLs[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=40, guidefontsize=20, tickfontsize=15, formatter=:plain, margin=10mm)
 ylabel!("Two-Moment KL")
 yticks!(10. .^[-2:1:6;])
 savefig("plots/kl_all.png")
@@ -67,7 +67,7 @@ D_stan = load("../stan_results/stan_poisson_reg.jld")["data"]
 stan_mean = vec(mean(D_stan, dims=1))
 Threads.@threads for i in 1:n_run
     println(i)
-    m1 = load("new_poisson_regression_coresetMCMC_" * "0.3_" *string(500) * "_" * string(i) * ".jld", "mean")
+    m1 = load("new_poisson_regression_coresetMCMC_" * "0.5_0.3_" *string(500) * "_" * string(i) * ".jld", "mean")
     mrels[i,1] = norm(m1 - stan_mean) / norm(stan_mean)
     if isfile("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld")
         m_method = load("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld", "mean")
@@ -87,7 +87,7 @@ Threads.@threads for i in 1:n_run
     mrels[i,7] = norm(m_method - stan_mean) / norm(stan_mean)
     m_method = load("poisson_regression_sghmc_" * string(i) * ".jld", "mean")
     mrels[i,8] = norm(m_method - stan_mean) / norm(stan_mean)
-    m_method = load("new_poisson_regression_coresetMCMC_" * "1_" *string(500) * "_" * string(i) * ".jld", "mean")
+    m_method = load("new_poisson_regression_coresetMCMC_" * "0.01_" *string(500) * "_" * string(i) * ".jld", "mean")
     mrels[i,9] = norm(m_method - stan_mean) / norm(stan_mean)
 end
 
@@ -99,7 +99,7 @@ boxplot!([names[4]], mrels[:,4], label = names[4], color = colours[4])
 boxplot!([names[5]], mrels[:,5], label = names[5], color = colours[5])
 boxplot!([names[6]], mrels[:,6], label = names[6], color = colours[6])
 boxplot!([names[7]], mrels[:,7], label = names[7], color = colours[7])
-boxplot!([names[8]], mrels[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=-20)
+boxplot!([names[8]], mrels[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=40, guidefontsize=20, tickfontsize=15, formatter=:plain, margin=10mm)
 ylabel!("Relative mean error")
 yticks!(10. .^[-10:1:6;])
 savefig("plots/mrel_all.png")
@@ -113,7 +113,7 @@ D_stan = load("../stan_results/stan_poisson_reg.jld")["data"]
 stan_cov = cov(D_stan, dims=1)
 Threads.@threads for i in 1:n_run
     println(i)
-    m1 = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(500) * "_" * string(i) * ".jld", "cov")
+    m1 = load("new_poisson_regression_coresetMCMC_" * "0.5_0.3_" * string(500) * "_" * string(i) * ".jld", "cov")
     srels[i,1] = norm(m1 - stan_cov) / norm(stan_cov)
     if isfile("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld")
         m_method = load("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld", "cov")
@@ -133,7 +133,7 @@ Threads.@threads for i in 1:n_run
     srels[i,7] = norm(m_method - stan_cov) / norm(stan_cov)
     m_method = load("poisson_regression_sghmc_" * string(i) * ".jld", "cov")
     srels[i,8] = norm(m_method - stan_cov) / norm(stan_cov)
-    m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(500) * "_" * string(i) * ".jld", "cov")
+    m_method = load("new_poisson_regression_coresetMCMC_" * "0.01_" * string(500) * "_" * string(i) * ".jld", "cov")
     srels[i,9] = norm(m_method - stan_cov) / norm(stan_cov)
 end
 
@@ -145,7 +145,7 @@ boxplot!([names[4]], srels[:,4], label = names[4], color = colours[4])
 boxplot!([names[5]], srels[:,5], label = names[5], color = colours[5])
 boxplot!([names[6]], srels[:,6], label = names[6], color = colours[6])
 boxplot!([names[7]], srels[:,7], label = names[7], color = colours[7])
-boxplot!([names[8]], srels[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=-20)
+boxplot!([names[8]], srels[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=40, guidefontsize=20, tickfontsize=15, formatter=:plain, margin=10mm)
 ylabel!("Relative cov error")
 yticks!(10. .^[-2:1:6;])
 savefig("plots/srel_all.png")
@@ -157,8 +157,8 @@ savefig("plots/srel_all.png")
 ################################
 for i in 1:n_run
     println(i)
-    m_method = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(500) * "_" * string(i) * ".jld", "θs")
-    time = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(500) * "_" * string(i) * ".jld", "c_time")
+    m_method = load("new_poisson_regression_coresetMCMC_" * "0.5_0.3_" * string(500) * "_" * string(i) * ".jld", "θs")
+    time = load("new_poisson_regression_coresetMCMC_" * "0.5_0.3_" * string(500) * "_" * string(i) * ".jld", "c_time")
     time = time[end] - time[50001]
     m_method = reduce(hcat, m_method)'
     m_method = m_method[100001:end, :]
@@ -232,8 +232,8 @@ for i in 1:n_run
     split[:,1,:] = m_method
     esss[i,8] = minimum(ess(split)) / time
 
-    m_method = load("new_poisson_regression_coresetMCMC_" * "1_" * string(500) * "_" * string(i) * ".jld", "θs")
-    time = load("new_poisson_regression_coresetMCMC_" * "1_" * string(500) * "_" * string(i) * ".jld", "c_time")
+    m_method = load("new_poisson_regression_coresetMCMC_" * "0.01_" * string(500) * "_" * string(i) * ".jld", "θs")
+    time = load("new_poisson_regression_coresetMCMC_" * "0.01_" * string(500) * "_" * string(i) * ".jld", "c_time")
     time = time[end] - time[50001]
     m_method = reduce(hcat, m_method)'
     m_method = m_method[100001:end, :]
@@ -250,44 +250,10 @@ boxplot!([names[4]], esss[:,4], label = names[4], color = colours[4])
 boxplot!([names[5]], esss[:,5], label = names[5], color = colours[5])
 boxplot!([names[6]], esss[:,6], label = names[6], color = colours[6])
 boxplot!([names[7]], esss[:,7], label = names[7], color = colours[7])
-boxplot!([names[8]], esss[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=-20)
+boxplot!([names[8]], esss[:,8], label = names[8], color = colours[8], yscale = :log10, legend=false, xrotation=40, guidefontsize=20, tickfontsize=15, formatter=:plain, margin=10mm)
 ylabel!("min ESS/s")
 yticks!(10. .^[-2:1:6;])
 savefig("plots/ess_all.png")
-
-################################
-################################
-# training time coreset size
-################################
-################################
-for i in 1:n_run
-    println(i)
-    time = load("new_poisson_regression_coresetMCMC_" * "0.3_" * string(500) * "_" * string(i) * ".jld", "c_time")
-    trains[i,1] = time[50000]
-    
-    if isfile("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld")
-        time = load("new_poisson_regression_QNC_" * string(500) * "_" * string(i) * ".jld", "c_time")
-        trains[i,2] = time[100]
-    else
-        trains[i,2] = NaN
-    end
-    
-    time = load("poisson_regression_SHF_" * string(500) * "_" * string(i) * ".jld", "c_time")
-    trains[i,3] = time[1]
-
-    time = load("new_poisson_regression_coresetMCMC_" * "1_" * string(500) * "_" * string(i) * ".jld", "c_time")
-    trains[i,9] = time[50000]
-end
-
-boxplot([names[1]], trains[:,1], label = names[1], color = colours[1])
-boxplot!([names[9]], trains[:,9], label = names[9], color = colours[9])
-boxplot!([names[2]], (trains[:,2])[trains[:,2] .!== NaN], label = names[2], color = colours[2])
-boxplot!([names[3]], trains[:,3], label = names[3], color = colours[3], #=yscale = :log10,=# legend=false, xrotation=-20)
-ylabel!("Training time (s)")
-yticks!([100, 500, 1000, 2000, 3000, 4000, 5000, 6000])
-# yticks!(10. .^[2.4:0.2:3.8;])
-ylims!((100, 5000))
-savefig("plots/train_all.png")
 
 JLD2.save("results.jld", "KLs", KLs,
                         "mrels", mrels,
@@ -295,8 +261,8 @@ JLD2.save("results.jld", "KLs", KLs,
                         "esss", esss,
                         "trains", trains)
 
-# KLs = JLD2.load("results.jld", "KLs")
-# mrels = JLD2.load("results.jld", "mrels")
-# srels = JLD2.load("results.jld", "srels")
-# esss = JLD2.load("results.jld", "esss")
-# trains = JLD2.load("results.jld", "trains")
+# KLs = load("results.jld", "KLs")
+# mrels = load("results.jld", "mrels")
+# srels = load("results.jld", "srels")
+# esss = load("results.jld", "esss")
+# trains = load("results.jld", "trains")
