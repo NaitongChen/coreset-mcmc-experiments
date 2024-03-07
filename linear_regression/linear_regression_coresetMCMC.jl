@@ -30,10 +30,10 @@ function main(args)
     # Create the algorithm
     println("Initializing sampler")
     if length(parse.(Float64, split(args[4], "_"))) == 1
-        kernel = CoresetMCMC(kernel = SliceSamplerMD(), replicas = 2, α = t -> parse(Float64, args[4]), delay = 1, train_iter = 25000, proj_n = model.N)
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> parse(Float64, args[4]), delay = 1, train_iter = 25000, proj_n = model.N)
     else    
         sizes = parse.(Float64, split(args[4], "_"))
-        kernel = CoresetMCMC(kernel = SliceSamplerMD(), replicas = 2, α = t -> sizes[1]/(t^sizes[2]), delay = 1, train_iter = 25000, proj_n = 5 * parse(Int, args[3]))
+        kernel = MCMCsampler.CoresetMCMC(kernel = MCMCsampler.SliceSamplerMD(), replicas = 2, α = t -> sizes[1]/(t^sizes[2]), delay = 1, train_iter = 25000, proj_n = 5 * parse(Int, args[3]))
     end
     cv = MCMCsampler.CoresetLogProbEstimator(N = parse(Int, args[3]))
 
