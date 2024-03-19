@@ -49,6 +49,6 @@ function est_gradient(metaState::AbstractMetaState, model::AbstractModel, cv::Co
     g = project(metaState, model, cv)
     proj_sum = project_sum(metaState, model, cv_zero, cv)
     h = proj_sum .- (g' * cv.weights)
-    grd = -g*h/length(metaState.states)
+    grd = -g*h/(length(metaState.states)-1)
     return grd
 end
